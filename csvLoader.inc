@@ -1,6 +1,6 @@
 <?php
 
-class csvLoader
+class CSVLoader
 {
     const MAX_FILE_SIZE  =  200000;
     const UPLOAD_ROOT    =  './uploads/';
@@ -14,6 +14,11 @@ class csvLoader
         'generalError'   => 'CSV File could not be opened by the system.  Please check with the website administrator.',
         'uploadNoSave'   => 'Could not save the uploaded file.  Please check with the website administrator.'
     );
+    
+    public function readFile($f)
+    {
+        return $this->loadFile($f);
+    }
     
     /**
      * UPLOADING THE CSV FILE
@@ -35,7 +40,7 @@ class csvLoader
             {
                 // Save the upload file...
                 if(
-                    !move_uploaded_file($f["file"]["tmp_name"], csvLoader::UPLOAD_ROOT . $f["file"]["name"]) ||
+                    !move_uploaded_file($f["file"]["tmp_name"], CSVLoader::UPLOAD_ROOT . $f["file"]["name"]) ||
                     $this->testFileExists($_FILES["file"]["name"]) === false)
                 {
                     $this->castError('uploadNoSave');
@@ -48,7 +53,7 @@ class csvLoader
                 if(empty($this->errorLog))
                 {
                     // Now load the file...
-                    return $this->loadFile(csvLoader::UPLOAD_ROOT . $f["file"]["name"]);
+                    return $this->loadFile(CSVLoader::UPLOAD_ROOT . $f["file"]["name"]);
                 }
                 else
                 {
@@ -75,6 +80,9 @@ class csvLoader
         
         if($fh) {
             while (($line = fgets($fh)) !== false) {
+            
+                // Strip new lines from line
+                $line = $this->stripLines($line);
 
                 // Get the form Title:
                 if($rowCount == 1) {
@@ -104,7 +112,8 @@ class csvLoader
                     $fields = explode(",", $line);
 
                     // Add the row array to the category array.    Example:    $HouseholdCleaning[] = $fields
-                    $safeCategory = preg_replace("/[^A-Za-z0-9]/", '', $fields[0]);
+                    $safeCategory = str_replace(" ", "_", $fields[0]);
+                    //$safeCategory = preg_replace("/[^A-Za-z0-9]/", '', $fields[0]);
 
                     // If array does not exist then create it.
                     if(!isset(${$safeCategory}))
@@ -152,6 +161,12 @@ class csvLoader
             return $formFields;
         }
     }
+    
+    private function stripLines($l)
+    {
+        $l = str_replace("\n\r", "", $l);
+        return str_replace("\n", "", $l);
+    }
 
     private function formTitle($l)
     {
@@ -162,7 +177,7 @@ class csvLoader
         }
         else
         {
-            return $formTitle=$formTitle[0];
+            return $this->stripLines($formTitle[0]);
         }
     }
 
@@ -184,7 +199,7 @@ class csvLoader
      */
     private function testFileExists($f)
     {
-        if(file_exists(csvLoader::UPLOAD_ROOT . $f))
+        if(file_exists(CSVLoader::UPLOAD_ROOT . $f))
         {
             return true;
         }
@@ -198,7 +213,7 @@ class csvLoader
     {
         $fileExt = explode(".", $f["file"]["name"]);
         
-        if($f["file"]["size"] > csvLoader::MAX_FILE_SIZE)
+        if($f["file"]["size"] > CSVLoader::MAX_FILE_SIZE)
         {
             $this->castError('fileSize');
             return false;
